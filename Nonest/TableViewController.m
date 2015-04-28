@@ -92,10 +92,10 @@
 
 - (void)startEvernoteSession {
     EvernoteSession *session = [EvernoteSession sharedSession];
-    [self appendText:[NSString stringWithFormat:@"start Evernote Authorication"]];
+    /*[self appendText:[NSString stringWithFormat:@"start Evernote Authorication"]];
     [self appendText:[NSString stringWithFormat:@"Session host: %@", [session host]]];
     [self appendText:[NSString stringWithFormat:@"Session key: %@", [session consumerKey]]];
-    [self appendText:[NSString stringWithFormat:@"Session secret: %@", [session consumerSecret]]];
+    [self appendText:[NSString stringWithFormat:@"Session secret: %@", [session consumerSecret]]];*/
     
     /*[session authenticateWithViewController:self completionHandler:^(NSError *error) {
      if (!error && session.isAuthenticated) {
@@ -106,46 +106,29 @@
      }
      }];*/
     [session authenticateWithViewController:self completionHandler:^(NSError *error) {
-        if (error || !session.isAuthenticated){
-            if (error) {
-                [self appendText:[NSString stringWithFormat:@"Error authenticating with Evernote Cloud API: %@", error]];
-            }
-            if (!session.isAuthenticated) {
-                [self appendText:[NSString stringWithFormat:@"Session not authenticated"]];
-            }
+        if (error || !session.isAuthenticated) {
+            NSLog(@"Error : %@",error);
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error"
+                                                            message:@"Could not authenticate"
+                                                           delegate:nil
+                                                  cancelButtonTitle:@"OK"
+                                                  otherButtonTitles:nil];
+            [alert show];
         } else {
-            EvernoteUserStore *userStore = [EvernoteUserStore userStore];
-            [userStore getUserWithSuccess:^(EDAMUser *user) {
-                sharedId = user.shardId;
-                NSLog(@"Shard id : %@",sharedId);
-                [self appendText:[NSString stringWithFormat:@"-- Authenticated as %@", [user username]]];
-            } failure:^(NSError *error) {
-                [self appendText:[NSString stringWithFormat:@"-- Error getting user: %@", error]];
-            } ];
-        
+            NSLog(@"authenticated! noteStoreUrl:%@ webApiUrlPrefix:%@", session.noteStoreUrl, session.webApiUrlPrefix);
+            
         }
     }];
 }
 
 - (void)getNote {
-    EvernoteSession *session = [EvernoteSession sharedSession];
-    NSString* aToken = [session authenticationToken];
-    EDAMNoteStoreClient* ensClient = [session noteStore];
-    EDAMNotebook* defaultNotebook = [ensClient getDefaultNotebook:aToken];
-    NSLog(@"Default Notebook is %@", [defaultNotebook name]);
+    
     
     
     
     //EvernoteNoteStore *noteStore = [EvernoteNoteStore noteStore];
     //EvernoteNoteStore *noteStore = [EvernoteNoteStore noteStore];
-    /*EDAMNoteFilter* noteFilter = [[EDAMNoteFilter alloc] initWithOrder:0
-     ascending:NO
-     words:nil
-     notebookGuid:nil
-     tagGuids:nil
-     timeZone:nil
-     inactive:NO
-     emphasized:nil];*/
+ 
     EDAMNoteFilter* filter = [[EDAMNoteFilter alloc] initWithOrder:0 ascending:NO words:nil notebookGuid:nil tagGuids:nil timeZone:nil inactive:NO emphasized:nil];
     EDAMNotesMetadataResultSpec *resultSpec = [[EDAMNotesMetadataResultSpec alloc] initWithIncludeTitle:YES includeContentLength:YES includeCreated:NO includeUpdated:NO includeDeleted:NO includeUpdateSequenceNum:NO includeNotebookGuid:NO includeTagGuids:NO includeAttributes:NO includeLargestResourceMime:NO includeLargestResourceSize:NO];
     [[EvernoteNoteStore noteStore] findNotesMetadataWithFilter:filter offset:self.currentNote maxNotes:10 resultSpec:resultSpec success:^(EDAMNotesMetadataList *metadata) {
