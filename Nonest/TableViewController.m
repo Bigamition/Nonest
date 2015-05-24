@@ -52,6 +52,15 @@
 {
     [super viewDidLoad];
     
+    UISwipeGestureRecognizer *swipe
+    = [[UISwipeGestureRecognizer alloc]
+       initWithTarget:self action:@selector(swipe:)];
+    // スワイプの方向は右方向を指定する。
+    swipe.direction = UISwipeGestureRecognizerDirectionRight;
+    // スワイプ動作に必要な指は1本と指定する。
+    swipe.numberOfTouchesRequired = 1;
+    [self.tableView addGestureRecognizer:swipe];
+    
     self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
     CGRect viewRect = self.webView.frame;
     [self.activityIndicator setFrame:CGRectMake(viewRect.size.width/2, viewRect.size.height/2, 20, 20)];
@@ -64,12 +73,10 @@
     [self startEvernoteSession];
     [self getNote];
     
-    
-    // Uncomment the following line to preserve selection between presentations.
-    // self.clearsSelectionOnViewWillAppear = NO;
-    
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-    // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+}
+
+-(void)swipe:(UISwipeGestureRecognizer *)gesture {
+    [self.navigationController popViewControllerAnimated:YES];
 }
 
 - (void)appendText:(NSString *)text {
@@ -85,26 +92,12 @@
 {
     [super viewWillAppear:animated];
     
-    //選択状態を解除
     [self.tableView deselectRowAtIndexPath:[self.tableView indexPathForSelectedRow] animated:NO];
     
 }
 
 - (void)startEvernoteSession {
     EvernoteSession *session = [EvernoteSession sharedSession];
-    /*[self appendText:[NSString stringWithFormat:@"start Evernote Authorication"]];
-    [self appendText:[NSString stringWithFormat:@"Session host: %@", [session host]]];
-    [self appendText:[NSString stringWithFormat:@"Session key: %@", [session consumerKey]]];
-    [self appendText:[NSString stringWithFormat:@"Session secret: %@", [session consumerSecret]]];*/
-    
-    /*[session authenticateWithViewController:self completionHandler:^(NSError *error) {
-     if (!error && session.isAuthenticated) {
-     EvernoteUserStore *userStore = [EvernoteUserStore userStore];
-     [userStore getUserWithSuccess:^(EDAMUser *user) {
-     NSLog(@"success evernote session");
-     } failure:^(NSError *error) {} ];
-     }
-     }];*/
     [session authenticateWithViewController:self completionHandler:^(NSError *error) {
         if (error || !session.isAuthenticated) {
             NSLog(@"Error : %@",error);
@@ -122,20 +115,16 @@
 }
 
 - (void)getNote {
-    
-    
-    
-    
-    //EvernoteNoteStore *noteStore = [EvernoteNoteStore noteStore];
-    //EvernoteNoteStore *noteStore = [EvernoteNoteStore noteStore];
- 
-    EDAMNoteFilter* filter = [[EDAMNoteFilter alloc] initWithOrder:0 ascending:NO words:nil notebookGuid:nil tagGuids:nil timeZone:nil inactive:NO emphasized:nil];
-    EDAMNotesMetadataResultSpec *resultSpec = [[EDAMNotesMetadataResultSpec alloc] initWithIncludeTitle:YES includeContentLength:YES includeCreated:NO includeUpdated:NO includeDeleted:NO includeUpdateSequenceNum:NO includeNotebookGuid:NO includeTagGuids:NO includeAttributes:NO includeLargestResourceMime:NO includeLargestResourceSize:NO];
+    //order:created-1,updated-2,RELEVANCE-3,UPDATE_SEQUENCE_NUMBER-4,TITLE-5
+    EDAMNoteFilter* filter = [[EDAMNoteFilter alloc] initWithOrder:2 ascending:NO words:nil notebookGuid:nil tagGuids:nil timeZone:nil inactive:NO emphasized:nil];
+    //返り値に何を含むせるか
+    EDAMNotesMetadataResultSpec *resultSpec = [[EDAMNotesMetadataResultSpec alloc] initWithIncludeTitle:YES includeContentLength:NO includeCreated:NO includeUpdated:NO includeDeleted:NO includeUpdateSequenceNum:NO includeNotebookGuid:NO includeTagGuids:NO includeAttributes:NO includeLargestResourceMime:NO includeLargestResourceSize:NO];
+    //offsetは結果をどこから表示するかの値
     [[EvernoteNoteStore noteStore] findNotesMetadataWithFilter:filter offset:self.currentNote maxNotes:10 resultSpec:resultSpec success:^(EDAMNotesMetadataList *metadata) {
         if(metadata.notes.count > 0) {
             self.noteList = metadata.notes;
             [self.tableView reloadData];
-            //[self loadNote];
+           
         }
         else {
             [self.webView loadHTMLString:@"No note found" baseURL:nil];
@@ -153,20 +142,6 @@
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-
-#pragma mark - Table view data source
-
-- (void)getUserShardId {
- //Get the User from userStore and return the user's shard ID
- [[EvernoteUserStore userStore] getUserWithSuccess:^(EDAMUser *user) {
- NSString* shardId = user.shardId;
- NSLog(@"Shard id : %@",shardId);
- } failure:^(NSError *error) {
- NSLog(@"Error : %@",error);
- }];
- }
-
-
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
